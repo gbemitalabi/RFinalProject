@@ -1,0 +1,175 @@
+---
+title: "FINAL PROJECT"
+author: "Gbemisola Talabi"
+date: "2022-12-12"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+# clean the environment
+rm(list=ls(all=T))
+
+### **Instructions**
+The data that I am using for my project is a Stroke dataset.
+
+I obtained the data from a lecture resource on Udemy learning platform. I was given access to download all learning materials and use for my benefit which includes educational purposes.
+
+This is the link to the udemy course: https://www.udemy.com/course/complete-tensorflow-2-and-keras-deep-learning-bootcamp/learn/lecture/14798282?start=15#overview
+
+The variables in the data include major factors that have been shown to be related to whether a patient has stroke or not. The determinant variable is called “stroke”, where 0 means a patient does not have stroke and 1 means a patient has stroke. Some other major variables follow the same pattern of (0s and 1s) such as "hypertension" and "heart_disease". Other numerical factors related are "avg_glucose_level- average glucose level in the body", "bmi- Body mass index", and "age". 
+
+I attempted to find more information about how the main original data was created, but did not find much information.
+
+
+Now I will load packages that I may need in my analysis:
+```{r}
+library(dplyr)
+library(readr)
+library(tidyverse)
+library(RColorBrewer)
+```
+
+
+##Data Import 
+
+
+I will then import my data by using the read_csv() function of the readr package as the data is in csv format. I will name the data Stroke. I added the show_col_types argument to remove the column specification printing.
+```{r}
+Stroke <- read_csv("../data/stroke_data.csv")
+```
+
+I then used the head() function to preview my first few data points from the top. I use the dim() function to see how many rows/columns there are.
+
+```{r}
+dim(Stroke)
+head(Stroke)
+```
+There are 29065 rows and 11 columns 
+
+
+To determine how many unique ages there are, I used the unique() function and the length() function.
+
+```{r}
+pull(Stroke, "age") %>%
+unique() %>%
+length()
+```
+This shows that there are 73 unique ages.
+
+
+To know more information on a particular variable like the mean, maximum, minimum for example, I used the summary() function on the age column.
+```{r}
+summary(Stroke$age)
+```
+
+
+
+## Data Cleaning/Wrangling
+
+I decided to rename BMI to body mass index to match other variables and to better understand what BMI means. I used the `rename()` function to do this, listing the new name first.
+
+```{r}
+Stroke <- Stroke %>%
+  rename("body_mass_index" = "bmi")
+colnames(Stroke)
+```
+
+I then decided to arrange the data by age using the arrange() function with the largest age shown first, thus I needed to use desc().
+
+```{r}
+Stroke <- Stroke %>% arrange(desc(age))
+head(Stroke)
+```
+
+
+I then decided to create a new variable from "ever_married" in a numeric form since it has just two options (Yes or No). This makes it similar to other existing variables of the same sample collection type and easier to work with. To do this I used the mutate() and case_when() function.
+
+```{r}
+Stroke <- Stroke %>%
+  mutate(new_ever_married = case_when(ever_married == "Yes" ~ '1',
+                            ever_married == "No" ~ '0'))
+```
+
+
+I decided to then check my new dataframe from the top again using the head() function.
+
+```{r}
+head(Stroke)
+```
+
+
+##Data visualization
+
+
+I used ggplot() and geom_boxplot() to create a boxplot of the stroke scores for all ages. I then decided to use the fill argument to classify the gender. I labelled the axis and used the element_text() function to place my title in the middle.
+
+```{r}
+  ggplot(Stroke, aes(as.factor(stroke), age, fill = gender))+
+  geom_boxplot()+
+  labs(title = "Age vs Stroke",x = "stroke" )+
+  theme(plot.title = element_text(hjust = .5))
+```
+
+I decided to make a plot of average glucose level against age using geom_point() and ggplot(). I also used geom_smooth() to add a trendline to see the dynamics of the selected data
+
+```{r}
+ggplot(data = Stroke, aes(x = age,y = avg_glucose_level))+
+  geom_point() + geom_smooth()+
+  labs(title="Average glucose level vs Age", x="age", y="avg_glucose_level")+ 
+  theme(plot.title = element_text(hjust = .5))
+```
+
+
+##Data Analysis
+
+I then decided to perform a simple analysis to compare both genders. I first filtered the data to create two new data sets for both genders and then performed a t-test without assuming equal variance.
+
+```{r}
+is_Male  <- Stroke %>%
+filter(`gender`== "Male")
+is_Female <- Stroke %>%
+filter(`gender`=="Female")
+t.test(
+x = pull(is_Male, stroke),
+y = pull(is_Female, stroke),
+var.equal = FALSE
+)
+```
+The p-value is lesser than 0.05 we can suggest that there is a significant difference between the stroke scores of both the Male and Female Gender.
+
+##Function
+
+If I wanted to perform this analysis on multiple aspects about my data more simplified, I might think about making a function like the following:
+```{r}
+test_reg_diff <- function(aspect) {
+t.test(
+x = pull(is_Male, aspect),
+y = pull(is_Female, aspect),
+var.equal = FALSE
+)
+}
+```
+
+This allows me to just specify what aspect (or variable) I would like to compare between the two Gender.I can apply it by supplying the name of the column to pull from the datasets. For example lets compare the heart disease.
+
+```{r}
+test_reg_diff(aspect = c("heart_disease"))
+```
+This makes a stronger claim than the stroke comparison with the p-value much lesser than 0.05, suggesting a significant difference in the heart disease comparison
+
+Average glucose level
+
+```{r}
+test_reg_diff(aspect = c("avg_glucose_level"))
+```
+This makes a stronger claim than the stroke comparison with the p-value much lesser than 0.05, suggesting a significant difference in the average glucose level comparison
+
+```{r}
+sessionInfo()
+```
+
+
+
+
+
